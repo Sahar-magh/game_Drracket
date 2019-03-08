@@ -1,0 +1,15 @@
+# Any line starting with a '#' is a comment line.
+[Bread=1]  -->   [acier=8]    cost = 2
+[]   -->  [metal=1] cost = 2	
+[] --> [Herb=1] cost = 1
+[] --> [Sugarcane=1] cost = 3
+[Herb=1] --> [Beer=1] cost = 2
+[Sugarcane=1]       --> [Sugar=1] cost     =     3
+[metal=1] --> [weapon=1] cost = 10
+[weapon=1] --> [Gold=20] cost = 30 
+[bois=1] --> [Gold=2] cost = 30 
+[gateau=1] --> [Gold=200] cost = 30 
+[lapin=1] --> [Gold=100] cost = 30 
+[Herb=1] --> [Beer=1] cost = 2
+[CocaCola=1] --> [Mcdo=1] cost = 2
+[lapin=1] --> [civet=1] cost = 2

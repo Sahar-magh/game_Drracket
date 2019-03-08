@@ -1,0 +1,137 @@
+#lang racket
+
+(struct graphe (node_racine lstnode lst-adj));;
+;;struct graph ( la chaine de production ) node_racine l'id de la racine (noeud) et lstnode la liste des ;
+;noeuds et lst-adj la liste des noeuds adjacents  : il s'agit d'une liste de liste de noeuds :
+;pour chaque noeud on associe une liste des noeud qui lui sont adjacents
+
+(struct node (id factory)) ;; struct noeud node id : l'id du noeud et factory l'usine qui est dans le noeud 
+
+(struct arc (cout id-deb id-end)) ; structure arc qui contient le cout pour acheter la factory d'arrivé id-deb-->id-end
+
+(struct factory (consomation production cout));;list-pair list-pair float
+
+(struct bench (lst-fact));;list de factory : bac de production 
+
+(struct chain (lst-bench));; list de list de factory
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;factory null
+(define Fact0 (factory null (cons "a" 1) 5))
+(define Fact1 (factory (cons "a" 1) (cons "b" 1) 5))
+(define Fact2 (factory (cons "a" 1) (cons "c" 1) 5))
+(define Fact3 (factory (cons "b" 1) (cons "d" 1) 7))
+(define Fact4 (factory (cons "c" 1) (cons "d" 1) 1))
+(define Fact5 (factory (cons "d" 1) (cons "gold" 10) 3))
+(define Fact6 (factory (cons "d" 1) (cons "gold" 15) 4))
+
+(define factlst (list Fact0 Fact1 Fact2 Fact3 Fact4 Fact5 Fact6))
+
+(define FactNull (factory (cons "" 0) (cons ""0) 0))
+;;noeud null
+(define NodeNull (node -1 FactNull))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (ajout-entrant adj entrant id)
+  (letrec ([aux (lambda (adj entrant id res i)
+                  (cond [(null? adj) res]
+                        [(not (equal? i (car entrant))) (aux (cdr adj) entrant id res (add1 i))]
+                        [else (aux (cdr adj) (cdr entrant) id (cons (cons id (car adj)) res) (add1 i))]))])
+    (aux adj entrant id null 0)))
+
+;;trouver un consommateur du produit prod
+(define (find-consomateur graph produ)
+  (letrec ([lst (graphe-lstnode graph)]
+           [aux (lambda (lst produ res)
+                   (cond [(null? lst) res]
+                         [(not (equal? produ (factory-consomation (node-factory (car lst))))) (aux (cdr lst) produ res)]
+                         [else (aux (cdr lst) produ (cons (node-id (car lst)) res))]))])
+    (aux lst produ null)))
+
+;;trouver un producteur du produit cons
+(define (find-producteur graph conso) 
+  (letrec ([lst (graphe-lstnode graph)]
+           [aux (lambda (lst conso res)
+                  (cond [(null? lst) res]
+                        [(not (equal? conso (factory-production (node-factory (car lst))))) (aux (cdr lst) conso res)] 
+                        [else (aux (cdr lst) conso (cons (node-id (car lst)) res))]))])
+    (aux lst conso null)))
+
+;;connecter les arcs du graphe 
+(define (connect-arc graph fact id)
+  (let* ([conso (factory-consomation fact)]
+        [produ (factory-production fact)]
+        [entrant (sort (find-producteur graph conso) <)]
+        [sortant (find-consomateur graph produ)]
+        [adj (graphe-lst-adj graph)])
+    (printf "deb : ")
+    (write adj)
+    (printf " entrant :")
+    (write entrant)
+    (printf " sortant :")
+    (write sortant)
+    (printf " adj : ")
+    (write adj)
+    (printf "\n")
+    (set! adj (append sortant adj))
+    (set! adj (ajout-entrant adj entrant id))
+    adj))
+
+;;ajout dans un graph
+(define (ajout-graph graph fact)
+  (if (not(null? (graphe-lstnode graph))) 
+  (let ([new-node-id (add1 (node-id (car (graphe-lstnode graph))))] ; au debut si  (graphe-lstnode graph) n' est pas vide 
+        [new-node (node (add1 (node-id (car (graphe-lstnode graph)))) fact)])
+    (graphe (graphe-node_racine graph) (cons new-node (graphe-lstnode graph)) (connect-arc graph fact new-node-id)))
+  (let ([new-node-id (add1 (node-id NodeNull))] ; au debut si  (graphe-lstnode graph) est vide 
+        [new-node (node (add1 (node-id NodeNull)) fact)])
+    (graphe (graphe-node_racine graph) (cons new-node (graphe-lstnode graph)) (connect-arc graph fact new-node-id)))))
+
+
+;;creer un graphe a partie d'une liste de factory
+(define (create-graph lst-fact)
+  (if (null? lst-fact)
+      (graphe null null null)
+      (letrec ([g0 (graphe null null null)]
+               [aux (lambda (lst-fact graph-res)
+                      (if (null? lst-fact)
+                          graph-res
+                          (aux (cdr lst-fact) (ajout-graph graph-res (car lst-fact)))))])
+        (aux lst-fact g0))))
+
+(define graph-test(create-graph factlst))
+;(graphe-lstnode graph-test)
+;(graphe-lst-adj graph-test)
+
+(define (aff-lstnode lst-node)
+  (letrec ([aux (lambda (lst-node i)
+                  (if (null? lst-node)
+                      (printf "end\n")
+                      (begin (printf "node ") (write i) (printf " : ") (printf "id ") (write (node-id (car lst-node)))
+                             (printf "  ||  fact : conso = ") (write (factory-consomation (node-factory (car lst-node))))
+                             (printf " produ = ") (write (factory-production (node-factory (car lst-node))))
+                             (printf " cout = ") (write (factory-cout (node-factory (car lst-node))))
+                             (printf "\n") (aux (cdr lst-node) (add1 i)))))])
+    (aux lst-node 0)))
+
+(define (aff-lstadj lst-adj)
+  (letrec ([aux (lambda (lst-adj i)
+                  (if (null? lst-adj)
+                      (printf "end\n")
+                      (begin (printf "L ") (write i) (printf " : ") (write (car lst-adj)) (printf "\n")
+                             (aux (cdr lst-adj) (add1 i)))))])
+    (aux lst-adj 0)))
+
+(define (aff-graph graph)
+  (let ([len (length (graphe-lstnode graph))])
+    (begin (printf "taille : ") (write len) (printf "\n"))
+    (printf "lst node : \n" )
+    (aff-lstnode (graphe-lstnode graph))
+    (printf "lst adj : \n")
+    (aff-lstadj (graphe-lst-adj graph))
+  ))
+
+;(aff-graph graph-test)

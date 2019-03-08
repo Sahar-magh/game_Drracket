@@ -1,0 +1,8 @@
+[Bread=1]  -->   [Gold=5]    cost = 2
+;;[]   -->  [metal=1] cost = 2	
+;;[] --> [Herb=1] cost = 1
+;;[] --> [Sugarcane=1] cost = 3
+[Herb=1] --> [Beer=1] cost = 2
+[Sugarcane=1]       --> [Sugar=1] cost     =     3
+[metal=1] --> [weapon=1] cost = 10
+[weapon=1] --> [Gold=20] cost = 30 

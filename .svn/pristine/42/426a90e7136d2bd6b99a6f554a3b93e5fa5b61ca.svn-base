@@ -1,0 +1,296 @@
+#lang racket
+
+;;Usine de niveau 2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;LES STRUCTURES;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct factory (consomation production cout));;list-pair list-pair float
+
+(struct bench (lst-fact));;list de factory : bac de production 
+
+(struct chain (lst-bench));; list de list de factory
+
+
+;;;;;;;;;;;;;;;;;;;;;;;problematique introduite par la nouvelle extention ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;Là on aura besoin d'un graphe , les feuilles sont les usines , les arcs sortants sont ce qu'elle produit et ceux entrant sont ce qu'elle consomme .
+;Et puisque a ce niveau , les usines peuvent avoir plus qu'une ressource en entrée  et chaque 2 usines distinctes doivent avoir des ressource differents ,
+;ca va devenir plus compliqué qu'avant il faut un graphe maintenant pour s'organiser et pour faire une chaine de factory .
+;on prend l'exemple suivant :
+; si une premiere usine : "usine1" prend en entréé : "Bread" et  "juice" et produit "truc1"
+; si une 2eme usine :     "usine2" prend en entréé : "Orange" et "sucre" et produit "truc2"
+;si une 3eme usine :      "usine3" prend en entréé : "orange" et "lemon" et produit "orange"
+;on veut construire une chaine de production : il faut lier "usine3" et "usine1" pour avoir "usune2" qui produit "truc2" .
+; la chaine prend donc "bread" et "juice" et "orange" et "lemon" et produit "truc2" , avec 3 usines on ne pourra pas gerer ca . 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;LE PARCEUR;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#|
+(require "factory.rkt") ;; or any library providing your code
+(require racket/cmdline)
+|#
+#|
+(define filename
+  (command-line
+   #:program "compiler"
+   #:args (filename) ; expect one command-line argument: 
+   ; return the argument as a filename to compile
+   filename)) ;; Usage : racket name_of_this_file.rkt name_of_the_factory_file
+|#
+
+#|
+(for-each
+ factory-println
+ (file->factories filename))
+|#
+
+(define src2-lv1 (file->lines "/net/i/cnis/projetS6/Schemeprojet/projets6-fact-4423/src2_lv1.txt"))
+
+;;coupe en colonne le fichier txt et prend en compte les colonnes 1 3 et4 
+(define (list-to-tree lst )
+  (letrec ([ aux (lambda (lst res)
+                   (if (null? lst)                    
+                       res
+                       (aux (cddr lst) (list (cons (car lst) (cadr lst)) res))))])
+    (aux lst null)))
+                   
+;;coupe en colonne le fichier txt et prend en compte les colonnes 1 3 et4
+(define (conso-trad s)
+  (if (string=? "[]" s)
+      null
+      (list-to-tree (string-split (string-replace (substring s 1 (sub1 (string-length s))) "=" ",") "," ))))
+
+(define (cout-trad s)
+  (string->number s))
+
+;;traduit en factory en fonction de ce qui a été pris en compte par la fonction list-to-tree
+(define (traduction2 s)
+  (factory (conso-trad (car (string-split s)))
+           (conso-trad (caddr (string-split s)))
+           (cout-trad (cadr (cddddr (string-split s))))))
+
+
+;(factory-consomation (traduction2 (cadr src2-lv1)))
+;(factory-production (traduction2 (cadr src2-lv1)))
+;(factory-cout (traduction2 (cadr src2-lv1)))
+
+;;trie les lignes entre les lignes commentés et à traduire et traduit les lignes à traduire
+(define (conversion lst-str)
+  (letrec ([aux-conv (lambda (lst-str lst-fact)
+                       (cond [(null? lst-str) lst-fact]
+                             [(string=? (substring (car lst-str) 0 1) "#") (aux-conv (cdr lst-str) lst-fact)]
+                             [else (flatten (aux-conv (cdr lst-str) (list  (traduction2 (car lst-str)) lst-fact)) )]))])
+    (aux-conv lst-str null)))
+
+(define lst-fact-src2-lv1 (conversion src2-lv1))
+
+;lst-fact-src2-lv1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Q2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;struct graphe ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(struct graphe (node_racine lstnode lst-arcs));;struct graph ( la de chaine de production )
+
+(struct node (id factory)) ;; struct noeud node id : l'id du noeud et factory l'usine qui est dans le noeud 
+
+(struct arc (est_entrant est_sortant matiere usine_entrant usine_sortant)) ; usine_entrant et usine_entrant sont deux noeuds
+;; struct arc :  si est_entrant=1 et est_sortant=0 alors il s'agit d'un arc entrant
+;dans l'usine usine_entrant et on met dans usine_sortant=factory NULL donc matière est la consommation
+;; ou sinon si est_entrant=0 et est_sortant=1  alors l'arc est sortant et la matière est la production et usine_entrant=NULL et usine_sortant=usine sinon
+;;si les deux =1 alors l'arc relie deux usines qu'on met dans usine_sortant et usine_entrant
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Affichage ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (aff-fact fact) ;affichage d'une factory
+  (if (null? (factory-consomation fact))
+       (printf "pas de consomation \n")
+       (begin (printf "consomation : " )
+        (write (cdr (factory-consomation fact)))
+        (printf " de " )
+        (printf (car (factory-consomation fact)))
+        (printf "\n")))      
+  (printf "production : ")
+  (write (cdr (factory-production fact)))
+  (printf " de " )
+  (printf (car (factory-production fact)))
+  (printf "\n")
+  (printf "cout : ")
+  (write (factory-cout fact) )
+  (printf "\n"))
+
+
+(define (aff-node node) ;affichage d'un noeud du graphe 
+  (begin (printf "L'identifiant du noeud est :")
+         (write (node-id node))
+         (printf "\n")
+         (printf "factory qui est dans le noeud :\n")
+         (aff-fact (node-factory node))))
+
+(define (aff-arc arc) ;; affichage d'un arc 
+  (cond 
+         [(and (= (arc-est_entrant arc) 1) (= (arc-est_sortant arc) 0)) (begin (printf "l'arc est entrant.\n")
+                                                                               (printf"la matière consommé est : ")
+                                                                               (write (cdr (arc-matiere arc)))
+                                                                               (printf " de ")
+                                                                               (write (car (arc-matiere arc)))
+                                                                               (printf "\n")
+                                                                               (printf "il s'agit de la consommation de l'usine (noeud): \n")
+                                                                               (aff-node (arc-usine_entrant arc)))]
+         [(and (= (arc-est_entrant arc) 0) (= (arc-est_sortant arc) 1)) (begin (printf "l'arc est sortant.\n")
+                                                                               (printf"la matière produite est : ")
+                                                                               (write (cdr (arc-matiere arc)))
+                                                                               (printf " de ")
+                                                                               (write (car (arc-matiere arc)))
+                                                                               (printf "\n")
+                                                                               (printf "il s'agit de la production de l'usine (noeud) : \n")
+                                                                               (aff-node (arc-usine_entrant arc)))]
+         [(and (= (arc-est_entrant arc) 1) (= (arc-est_sortant arc) 1)) (begin (printf "l'arc relie 2 usines dans la chaine de production .\n")
+                                                                               (printf"la matière produite par la 1ere usine et consommé par la 2 eme usine est :  ")
+                                                                               (write (cdr (arc-matiere arc)))
+                                                                               (printf " de ")
+                                                                               (write (car (arc-matiere arc)))
+                                                                               (printf "\n")
+                                                                               (printf "il s'agit de la consommation de l'usine (noeud): \n")
+                                                                               (aff-node (arc-usine_entrant arc))
+                                                                               (printf "il s'agit de la production de l'usine (noeud): \n")
+                                                                               (aff-node (arc-usine_sortant arc)))]
+         [(and (= (arc-est_entrant arc) 0) (= (arc-est_sortant arc) 0)) (raise "Erreur ce n'est pas un arc , il est ni entrant ni sortant")]))
+
+(define (aff-graphe_len graphe) ; affichage du graphe : length
+  (let ([len_nodes (length (graphe-lstnode graphe))]
+         [len_arcs (length (graphe-lst-arcs graphe))])
+    (begin (printf "le nombre des noeuds est : \n")
+           (write (add1 len_nodes))
+           (printf "\n")
+           (printf "la nombre des arcs est : \n")
+           (write len_arcs))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TESTS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
+(define fa1 (factory (cons "a" 1) (cons "b" 1) "d"))
+(define fa2 (factory (cons "d" 1) (cons "c" 1) 15))
+(define fa3 (factory (cons "e" 1) (cons "f" 1) "c"))
+(define fa11 (factory '() (cons "b" 1) "d"))
+
+(define node1 (node 0 fa1))
+(define node2 (node 1 fa2))
+(define node3 (node 2 fa3))
+
+(define lst_nodes (list  node2 node3))
+(define NULL (factory (cons "" 0) (cons ""0) 0))
+
+(define arc1 (arc 1 0 (cons "a" 1) node1 NULL))
+(define arc2 (arc 1 0 (cons "b" 1) node1 NULL))
+(define arc3 (arc 1 0 (cons "e" 1) node3 NULL)) 
+(define arc4 (arc 1 0 (cons "f" 1) node3 NULL))
+(define arc5 (arc 1 1 (cons "d" 1) node1 node2))
+(define arc6 (arc 1 1 (cons "c" 1) node3 node2))
+(define arc_none (arc 0 0 (cons "z" 5) node2 node3))
+
+(define lst_arcs (list arc1 arc2 arc3 arc4 arc5 arc6))
+(define graph (graphe node1 lst_nodes lst_arcs))
+;(aff-fact fa1)
+;(aff-node node1)
+;(aff-arc arc_none)
+;(aff-graphe_len graph)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (extract-fact-gold lst res) ;; renvoie la list des factory qui produisent des gold ; lst est la liste des factory dispo ;
+  ;et res ou on va mettre la liste des factory qui produisent du gold 
+  (cond [(null? lst) res]
+        [(not (string=? "Gold" (caar (factory-production (car lst))))) (extract-fact-gold (cdr lst) res)]
+        [else (flatten (extract-fact-gold (cdr lst) (list res (car lst))))]))
+  
+(define (pop l1 l2) ;; enlève tous les elt de l2 presant dans l1
+  (remove* l2 l1 equal?))
+
+(define (null-node? node) ;indique si un noeud est vide si son id est strictement negatif
+  (< (node-id node) 0))
+     
+(define (racine-null? graph) ;; indique si la racine du graphe ne prend rien en consomation
+  (null-node? (graphe-node_racine graph)))
+
+(define (is_the_production_good? production fact);;Est ce que factory produit bien "prod" ?
+  (equal? production (factory-production fact)))
+
+(define (find-factory-with-no-consommation lst) ; permet de retrouver une factory qui ne prend rien en consommation parmi la liste des factory lst 
+  (if (null? lst)
+      (raise "no factory with no consommation ")
+      (or (= 0 (car lst)  
+
+;(define (create-graph )
+ ; (
+
+;(define (rajout? graph lst-fact);;Est ce qu'on peut rajouter une factory au graphe is chaine de production ? 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;(define (end? node)
+ ; (
+
+;(define (rajouter tree lst-fact);;qu'est ce qu'on peut rajouter ?
+ ; (letrec ([ aux (lambda (res node)
+  ;                 (cond [(end? node) (list res (filter (curry produit? (factory-consomation (arbre-fact node))) lst-fact))]
+   ;                      [ else (map (curry aux res) (arbre-fils node))]))])
+    ;(flatten (aux null tree))))
+
+;(define facto (factory null (cons "b" 1) 5))
+;(trans-fact-node facto)
+
+
+;(define (ajout graph lst-fact)
+ ; (letrec ([ aux (lambda (node)
+  ;                 (cond [(leaf? node)
+   ;                       (set-arbre-fils!
+    ;                       node   
+     ;                      (map trans-fact-node (filter (curry produit? (factory-consomation (arbre-fact node))) lst-fact)))]
+      ;                   [ else (map aux (arbre-fils node))]))]) 
+    ;(aux tree))
+  ;tree)
+
+#|
+(aff-tree 0 tree-test)
+
+(aff-tree 0 (ajout tree-test lst-rajout))
+
+;(aff-tree 0 tree-test)
+|#
+
+
+
+
+;(define fzero (factory (cons "a" 1) (cons "gold" 10) 2))
+;(define fzero2 (factory (cons "a" 1) (cons "gold" 10) 2))
+;(define f1 (factory (cons "b" 1) (cons "a" 1) 1))
+;(define f2 (factory (cons "c" 1) (cons "a" 1) 288))
+;(define f3 (factory (cons "d" 1) (cons "b" 1) 25))
+;(define f4 (factory (cons "e" 1) (cons "b" 1) 25))
+;(define f5 (factory (cons "f" 1) (cons "c" 1) 28))
+;(define f6 (factory (cons "g" 1) (cons "c" 1) 2212222222))
+;(define f7 (factory (cons "z" 1) (cons "y" 1) 0))
+;(define f8 (factory (cons "x" 1) (cons "t" 1) 12))
+
+;(define lst (list f1 f2 f3 f4 f5 f6 f7 f8))
+                    
+;(define (create-tree factg lst-fact) ;; creer un arbre à partir d'une factg est d'une lst-fact
+ ; (letrec ([ aux (lambda (tree lst-fact)
+  ;                 (let ([enlever (rajouter tree lst-fact)])
+   ;                (if (rajout? tree lst-fact)
+    ;                   (aux (ajout tree lst-fact) (pop lst-fact enlever))
+     ;                  tree)))])
+    ;(aux (arbre factg null) lst-fact)))
+  
+
+;;(aff-tree 0 (create-tree fzero lst))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

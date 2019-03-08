@@ -1,0 +1,140 @@
+#lang racket
+
+;;;;;;;;;;;;;;;;;;;;;;; Q1 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct factory (consomation production cout));;pair pair float
+
+(struct chaine (enter fact-list));;pair list_de_factory
+
+;;;;;;;;;;;;;;;;;;;;;;; AFFICHAGE ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (aff-fact fact)
+  (printf "consomation : " )
+  (write (cdr (factory-consomation fact)))
+  (printf " de " )
+  (printf (car (factory-consomation fact)))
+  (printf "\n")
+  (printf "production : ")
+  (write (cdr (factory-production fact)))
+  (printf " de " )
+  (printf (car (factory-production fact)))
+  (printf "\n")
+  (printf "cout : ")
+  (write (factory-cout fact) )
+  (printf "\n"))
+
+(define (aff-enter e)
+  (printf "entrer : ")
+  (write (cdr e))
+  (printf " de ")
+  (printf (car e))
+  (printf "\n")
+  (printf "\n"))
+
+(define (aff-fact2 lst i n)
+  (if (null? lst)
+      (printf "end")
+      (begin (printf "factory ") (write (add1 i)) (printf "/") (write n) (printf " : \n") (aff-fact (car lst)) (printf "\n")
+                           (aff-fact2 (cdr lst) (add1 i) n))))
+
+(define (aff-chaine c)
+  (aff-enter (chaine-enter c))
+  (aff-fact2 (chaine-fact-list c) 0 (length (chaine-fact-list c))))
+ 
+
+;;;;;;;;;;;;;;;;;;;;;;; Q3 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (factory-null? fact)
+  (and (null? (factory-consomation fact))
+       (null? (factory-production fact)))) 
+
+(define (test-coherance-rec? enter list)
+  (cond [(null? list) #t]
+        [(not (equal? enter (factory-consomation (car list)))) #f]
+        [else (test-coherance-rec? (factory-production (car list)) (cdr list))]))
+
+;;test si la chaine de production est bien def
+(define (test-coherance? file)
+  (cond [(factory-null? (car (chaine-fact-list file))) #t]
+        [(not(equal? (chaine-enter file) (factory-consomation (car (chaine-fact-list file))))) #f]
+        [else (test-coherance-rec? (chaine-enter file) (chaine-fact-list file))]))
+        
+(define f1 (factory (cons "a" 1) (cons "b" 1) 5))
+(define f2 (factory (cons "b" 1) (cons "c" 1) 15))
+(define f3 (factory (cons "c" 1) (cons "d" 1) 5))
+
+(define fnull (factory null null 0))
+;;(factory-null? fnull) -> true
+;;(factory-null? f1) -> false
+
+(define c1 (chaine (cons "a" 1) (list f1 f2 f3)))
+(define cnull (chaine (cons "a" 1) (list fnull)))
+(define c2 (chaine (cons "b" 1) (list f1 f2 f3)))
+(define c3 (chaine (cons "a" 1) (list f1 f3 f2)))
+;;(chaine-enter c1)
+;;(chaine-fact-list c1)
+
+;;(test-coherance? c1) -> true
+;;(test-coherance? cnull) ;;-> true
+;;(test-coherance? c2) -> false
+;;(test-coherance? c3) -> false
+
+
+;;;;;;;;;;;;;;;;;;;;;;; Q2 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;(define src (file->list "/net/i/cnis/projetS6/Schemeprojet/projets6-fact-4423/src.txt"))        
+(define src-lv1 (file->list "/net/i/cnis/projetS6/Schemeprojet/projets6-fact-4423/src_lv1.txt"))
+
+;;(/ (length src-lv1) 6)
+(define c-test (chaine (cons "Bread" 1) null))
+;;(chaine-enter c-test)
+;;(chaine-fact-list c-test)
+
+
+;;Convertit une list en une chaine de carac !!!!!!! ATTENTION !!!!! ne fonctionne que pour des fatory de niveau 1
+(define (trad s)
+  (cond [(null? s) null]
+        [(and (pair? s) (= (length s) 1) (not(number? (car s)))) (symbol->string (car s))]
+        [(and (pair? s) (= (length s) 1) (number? (car s))) (car s)]
+        [(number? s) s]
+        [else (symbol->string s)]
+        ))
+
+(define (convert sl)
+  (map trad sl))
+
+(define (string->consomation s);;Marche aussi pour les productions
+  (string-split s "="))
+
+
+(define (trans-fact l)
+  (factory (string->consomation (car l)) (string->consomation (cadr l)) (caddr l)))
+
+(define (traduction l)
+  (trans-fact (convert l)))
+
+;;Exemples (penser à decommenter src)
+;;(list (car src) (caddr src) (car (cdr (cddddr src))))
+;;(convert (list (car src) (caddr src) (car (cdr (cddddr src)))))
+;;(trans-fact (convert (list (car src) (caddr src) (car (cdr (cddddr src))))))
+;;(define test (trans-fact (convert (list (car src) (caddr src) (car (cdr (cddddr src)))))))
+;;(factory-consomation test)
+;;(factory-production test)
+;;(factory-cout test)
+;;(traduction (list (car src) (caddr src) (car (cdr (cddddr src)))))
+
+
+(define (parcer src n file);;quelque petit probleme avec les [] mais sinon sa marche
+  (if (= 0 n)
+      file
+      (parcer (cdr (cdr (cddddr src))) (sub1 n)
+              (chaine (chaine-enter file) (flatten (list (traduction (list (car src) (caddr src) (car (cdr (cddddr src))))) (chaine-fact-list file) ))))))
+
+
+(define test-parcer (parcer src-lv1 (/ (length src-lv1) 6) c-test))
+(aff-chaine test-parcer)
+
+
+

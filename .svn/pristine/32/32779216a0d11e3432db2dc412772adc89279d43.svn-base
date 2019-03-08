@@ -1,0 +1,97 @@
+#lang racket
+
+;;Usine de niveau 2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;LES STRUCTURES;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct factory (consomation production cout));;list-pair list-pair float
+
+(struct bench (lst-fact));;list de factory
+
+(struct chain (lst-bench));; list de list de factory
+
+#|
+(struct node (data lst-node));; factory  lst des noeuds sortant
+
+(struct graphe (lst-node));;list des noeuds de l'arbre
+|#
+
+(struct graphe (lst-fact mat))
+(struct mat-adj (tab));;list de list
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;L'AFFICHAGE;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;LE PARCEUR;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#|
+(require "factory.rkt") ;; or any library providing your code
+(require racket/cmdline)
+|#
+#|
+(define filename
+  (command-line
+   #:program "compiler"
+   #:args (filename) ; expect one command-line argument: 
+   ; return the argument as a filename to compile
+   filename)) ;; Usage : racket name_of_this_file.rkt name_of_the_factory_file
+|#
+
+#|
+(for-each
+ factory-println
+ (file->factories filename))
+|#
+
+(define src2-lv1 (file->lines "/net/i/cnis/projetS6/Schemeprojet/projets6-fact-4423/src2_lv1.txt"))
+
+(define (list-to-tree lst )
+  (letrec ([ aux (lambda (lst res)
+                   (if (null? lst)                    
+                       res
+                       (aux (cddr lst) (list (cons (car lst) (cadr lst)) res))))])
+    (aux lst null)))
+                   
+
+(define (conso-trad s)
+  (if (string=? "[]" s)
+      null
+      (list-to-tree (string-split (string-replace (substring s 1 (sub1 (string-length s))) "=" ",") "," ))))
+
+(define (cout-trad s)
+  (string->number s))
+  
+ 
+
+(define (traduction2 s)
+  (factory (conso-trad (car (string-split s)))
+           (conso-trad (caddr (string-split s)))
+           (cout-trad (cadr (cddddr (string-split s))))))
+
+
+;(factory-consomation (traduction2 (cadr src2-lv1)))
+;(factory-production (traduction2 (cadr src2-lv1)))
+;(factory-cout (traduction2 (cadr src2-lv1)))
+
+(define (conversion lst-str)
+  (letrec ([aux-conv (lambda (lst-str lst-fact)
+                       (cond [(null? lst-str) lst-fact]
+                             [(string=? (substring (car lst-str) 0 1) "#") (aux-conv (cdr lst-str) lst-fact)]
+                             [else (flatten (aux-conv (cdr lst-str) (list  (traduction2 (car lst-str)) lst-fact)) )]))])
+    (aux-conv lst-str null)))
+
+(define lst-fact-src2-lv1 (conversion src2-lv1))
+
+;lst-fact-src2-lv1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (create-graphe lst-fact)
+  (letrec ([aux-create(lst-fact 

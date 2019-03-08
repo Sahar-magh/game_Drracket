@@ -1,0 +1,19 @@
+\section{Introduction}
+
+Le but de ce projet est d'implémenter des chaînes de production et de consommation de produits manufacturés. Les chaînes de production dans ce jeu consistent à composer des ensembles d'usines produisant des denrées à partir d'autres, elle-même obtenu à partir d'autre. Tous ceci dans le but de maximiser les golds obtenus en fin de productions. 
+
+%Ainsi par exemple, pour produire une unité de pâte d'amande, il est nécessaire de disposer d'une unité d'amandes, et d'une unité de sucre, elle même produite à partir d'une unité de canne à sucre.\\ a mofifier
+
+\indent Nous allons tout au long du projet nous intéresser aux chaînes de production elle-mêmes, et leur optimisation. Chaque chaîne de production est composée d'usines qui ont un coût, un ensemble de ressources d'entrée consommées  et un ensemble de sorties produites par unité de temps. Pour qu'une chaîne de production soit viable il faut que la première usine ne consomme rien et que la dernière produise du gold.\\
+
+\indent Chaque tour de jeu est défini de la manière suivante. Tout d'abord, le joueur commence par choisir de construire de nouvelles usines pour renforcer la capacité de production, en fonction de ses ressources en Gold. Ensuite, les usines peuvent consommer et produire en parallèle les ressources, si elles reçoivent les ressources nécessaires.\\
+
+\indent Ce projet est composé de trois niveaux afin de nous simplifier l'implémentassions de ce dernier. Les caractéristiques des usines différencient ces différents niveaux. 
+\begin{itemize}
+    \item  $1^{er}$ niveau : chaque usine a au plus une ressource d'entrée et une ressource de sortie. 
+    \item $2^{e}$ niveau : les usines peuvent avoir plusieurs ressources d'entrée, deux usines distinctes ne peuvent avoir la même ressource d'entrée mais toujours qu'une.
+    \item  $3^{e}$ niveau : les usines peuvent avoir plusieurs ressources d'entrée et de sortie.
+\end{itemize}
+
+
+

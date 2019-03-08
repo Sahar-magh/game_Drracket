@@ -1,0 +1,15 @@
+;; Any line starting with a '#' is a comment line.
+[Bread=1]  -->   [Gold=5]    cost = 2
+[]   -->  [metal=1] cost = 2	
+[] --> [Herb=1,Wheat=1] cost = 1
+[] --> [Sugarcane=1,Almond=1] cost = 3
+[Herb=1,Wheat=2] --> [Beer=1] cost = 2
+[Wheat=2]       --> [Flour=1] cost     =     3
+;; Any facetious and seemingly unnecessary space should be handled correctly
+;; There shall never be a space between each pair of brackets.
+[Flour=3]     --> [Bread=1] cost = 4
+[Bread=1]  -->   [Gold=5]    cost = 2
+[Sugarcane=1]      --> [Sugar=1] cost = 1
+[Sugar=1,Almond=2] --> [Marzipan=1]            cost = 3
+;; Marzipan is yummy but expensive.
+[Marzipan=1] --> [Gold=10] cost = 10
